@@ -38,8 +38,16 @@ function DictionaryMode:addToMainMenu(menu_items)
 end
 
 function DictionaryMode:onDictionaryMode()
+    local enabled = G_reader_settings:isTrue("enable_dictionary_mode")
+    local msg = "-"
+    if enabled then
+        msg = "Dictionary mode enabled"
+    else
+        msg = "Dictionary mode disabled"
+    end
+
     local popup = InfoMessage:new{
-        text = _("Dictionary mode foobar"),
+        text = _(msg),
     }
     UIManager:show(popup)
 end
@@ -69,19 +77,6 @@ function DictionaryMode:registerTap()
             handler = function(ges) return self:onTap(nil, ges) end
         },
     })
-end
-
-local function cleanupSelectedText(text)
-    -- Trim spaces and new lines at start and end
-    text = text:gsub("^[\n%s]*", "")
-    text = text:gsub("[\n%s]*$", "")
-    -- Trim spaces around newlines
-    text = text:gsub("%s*\n%s*", "\n")
-    -- Trim consecutive spaces (that would probably have collapsed
-    -- in rendered CreDocuments)
-    text = text:gsub("%s%s+", " ")
-
-    return text
 end
 
 function DictionaryMode:onTap(_, ges)
