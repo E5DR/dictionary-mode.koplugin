@@ -1,4 +1,5 @@
 local Dispatcher = require("dispatcher")  -- luacheck:ignore
+local dbg = require("dbg")
 local Event = require("ui/event")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
@@ -89,20 +90,12 @@ function DictionaryMode:onTap(_, ges)
     if disabled then
         return false
     end
+    logger.dbg("DictionaryMode onTap handler - emulating hold")
 
-    local pos = self.view:screenToPageTransform(ges.pos)
-    local text = self.ui.document:getTextFromPositions(pos, pos)
-
-    if not text then
-        return false
-    end
-
-    if string.find(text.text, " ") then
-        return false
-    end
-
-    self.ui:handleEvent(Event:new("LookupWord", cleanupSelectedText(text.text)))
-    self.ui.document:clearSelection()
+    self.ui.highlight:onHold(nil, ges)
+    self.ui.highlight:onHoldRelease()
+    -- self.ui.highlight:clear()
+    -- self.ui.document:clearSelection()
 
     return true
 end
