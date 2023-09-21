@@ -58,21 +58,27 @@ function DictionaryMode:registerTap()
             id = "dictionarymode_tap",
             ges = "tap",
             screen_zone = {
-                ratio_x = 0, ratio_y = 0, ratio_w = 1, ratio_h = 1,
+                -- Keep a slight margin to allow tapping on the corners /
+                -- status bar (note: not sure if you can actually get the
+                -- bottom corners or if they are in conflict with the status
+                -- bar)
+                -- Trying to keep the values conservative and small in case
+                -- someone has a large screen
+                ratio_x = 0.01, ratio_y = 0.015, ratio_w = 0.98, ratio_h = 0.97,
             },
             overrides = {
                 "readerhighlight_tap",
-                "tap_top_left_corner",
-                "tap_top_right_corner",
-                "tap_left_bottom_corner",
-                "tap_right_bottom_corner",
-                "readerfooter_tap",
+                -- "tap_top_left_corner",
+                -- "tap_top_right_corner",
+                -- "tap_left_bottom_corner",
+                -- "tap_right_bottom_corner",
+                -- "readerfooter_tap",
                 "readerconfigmenu_ext_tap",
                 "readerconfigmenu_tap",
                 "readermenu_ext_tap",
                 "readermenu_tap",
-                "tap_forward",
-                "tap_backward",
+                -- "tap_forward",
+                -- "tap_backward",
             },
             handler = function(ges) return self:onTap(nil, ges) end
         },
@@ -81,18 +87,32 @@ end
 
 function DictionaryMode:onTap(_, ges)
     local disabled = G_reader_settings:nilOrFalse("enable_dictionary_mode")
-
     if disabled then
         return false
     end
-    logger.dbg("DictionaryMode onTap handler - emulating hold")
 
-    self.ui.highlight:onHold(nil, ges)
-    self.ui.highlight:onHoldRelease()
-    -- self.ui.highlight:clear()
-    -- self.ui.document:clearSelection()
+    -- Do not activate when no text is detected. This should allow triggering
+    -- the original action, like a corner tap or a page flip.
+    -- (Note in case tap_forward / tap_backward override is active: In this
+    -- case tapping / holding below or above a text will still select the text
+    -- even on free space. Therefore in that case tap-through will mostly
+    -- happen when tapping in the left / right margins or the free space next
+    -- to a paragraph.)
+    local pos = self.view:screenToPageTransform(ges.pos)
+    local text = self.ui.document:getTextFromPositions(pos, pos)
+    if (not text) or (string.find(text.text, "\n") or string.find(text.text, " ")) then
+        logger.dbg("DictionaryMode: Tap detected, but no text - nothing to do")
+        -- Clear highlights since in some cases a highlight will be created but
+        -- not cleared for some reason
+        self.ui.highlight:clear()
+        return false
+    end
 
-    return true
+    logger.dbg("DictionaryMode: Emulating hold")
+    local status = self.ui.highlight:onHold(nil, ges)
+    status = self.ui.highlight:onHoldRelease() and status
+
+    return status
 end
 
 
